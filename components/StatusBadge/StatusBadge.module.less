@@ -11,7 +11,7 @@
         background-color: #e3f2fd;
         color: #1976d2;
         /* Поддержка тёмной темы, если на странице включен класс/атрибут тёмной темы */
-        :global([data-theme="dark"]) & {
+        [data-theme="dark"] & {
             background-color: rgba(25, 118, 210, 0.25);
             color: #90caf9;
             border: 1px solid rgba(144, 202, 249, 0.3);
@@ -22,7 +22,7 @@
         background-color: #fff3e0;
         color: #f57c00;
 
-        :global([data-theme="dark"]) & {
+        [data-theme="dark"] & {
             background-color: rgba(245, 124, 0, 0.25);
             color: #ffb74d;
             border: 1px solid rgba(255, 183, 77, 0.3);
@@ -33,7 +33,7 @@
         background-color: #e8f5e9;
         color: #388e3c;
 
-        :global([data-theme="dark"]) & {
+        [data-theme="dark"] & {
             background-color: rgba(56, 142, 60, 0.25);
             color: #81c784;
             border: 1px solid rgba(129, 199, 132, 0.3);

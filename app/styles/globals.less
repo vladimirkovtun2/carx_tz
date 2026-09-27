@@ -1,4 +1,39 @@
-﻿@import './variables.less';
+@import './variables.less';
+
+// Переменные темы — глобальный CSS (этот файл не является CSS-модулем)
+:root {
+    --bg-color: #ffffff;
+    --card-bg: #f8fafc;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --accent: @primary-color;
+    --accent-hover: @primary-hover;
+    // Индикация статусов (Светлая тема)
+    --status-new-bg: #fef2f2;
+    --status-new-text: #dc2626;
+    --status-progress-bg: #fefce8;
+    --status-progress-text: #ca8a04;
+    --status-completed-bg: #f0fdf4;
+    --status-completed-text: #16a34a;
+}
+
+[data-theme='dark'] {
+    --bg-color: #0a0a0a;
+    --card-bg: #141414;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --border-color: #262626;
+    --accent: #38bdf8;
+    --accent-hover: #0284c7;
+    // Индикация статусов (Темная тема)
+    --status-new-bg: #450a0a;
+    --status-new-text: #fca5a5;
+    --status-progress-bg: #422006;
+    --status-progress-text: #fde047;
+    --status-completed-bg: #052e16;
+    --status-completed-text: #86efac;
+}
 
 * {
     box-sizing: border-box;
@@ -27,8 +62,6 @@ a {
         outline-offset: 2px;
     }
 }
-
-
 
 // Семантические элементы формы
 input, select, button {

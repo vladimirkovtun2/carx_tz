@@ -101,7 +101,7 @@ function TasksContent() {
     return (
         <main className={styles.container}>
             <div className={styles.headerRow}>
-                <h1 className={styles.title}>Список  задач</h1>
+                <h1 className={styles.title}>Список задач</h1>
                 <button
                     className={styles.createBtn}
                     onClick={() => setIsModalOpen(true)}
