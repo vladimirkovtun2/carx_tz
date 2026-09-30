@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
@@ -20,6 +20,8 @@ export default function TaskPage() {
     const [statusError, setStatusError] = useState<string | null>(null);
     const [commentError, setCommentError] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
+    // Последний неудачный переход статуса — для кнопки «Повторить»
+    const [retryStatus, setRetryStatus] = useState<TaskStatus | null>(null);
 
     useEffect(() => {
         if (!id) return;
@@ -58,15 +60,17 @@ export default function TaskPage() {
             });
             if (!response.ok) throw new Error();
             setTask(await response.json());
+            setRetryStatus(null);
         } catch {
-            setStatusError("Не удалось изменить статус. Попробуйте ещё раз.");
+            setStatusError("Не удалось изменить статус.");
+            setRetryStatus(status);
         } finally {
             setPendingAction(null);
         }
     };
 
-    const handleAddComment = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    // Вынесена из onSubmit формы — тем же методом пользуется кнопка «Повторить»
+    const submitComment = async () => {
         if (!task || !commentText.trim()) return;
         try {
             setPendingAction("comment");
@@ -74,16 +78,23 @@ export default function TaskPage() {
             const response = await fetch(`/api/tasks/${task.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ comments: [...(task.comments ?? []), commentText.trim()] }),
+                body: JSON.stringify({
+                    comments: [...(task.comments ?? []), { id: crypto.randomUUID(), text: commentText.trim() }],
+                }),
             });
             if (!response.ok) throw new Error();
             setTask(await response.json());
             setCommentText("");
         } catch {
-            setCommentError("Не удалось отправить комментарий. Попробуйте ещё раз.");
+            setCommentError("Не удалось отправить комментарий.");
         } finally {
             setPendingAction(null);
         }
+    };
+
+    const handleAddComment = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        void submitComment();
     };
 
     const handleDelete = async () => {
@@ -95,7 +106,7 @@ export default function TaskPage() {
             if (!response.ok) throw new Error();
             router.push("/");
         } catch {
-            setDeleteError("Не удалось удалить задачу. Попробуйте ещё раз.");
+            setDeleteError("Не удалось удалить задачу.");
         } finally {
             setPendingAction(null);
         }
@@ -123,7 +134,14 @@ export default function TaskPage() {
                 </button>
             </nav>
 
-            {deleteError && <p className={styles.actionError} role="alert">{deleteError}</p>}
+            {deleteError && (
+                <div className={styles.actionError} role="alert">
+                    <span>{deleteError}</span>
+                    <button type="button" className={styles.retryBtn} onClick={() => void handleDelete()}>
+                        Повторить
+                    </button>
+                </div>
+            )}
 
             <article className={styles.taskDetail}>
                 <header className={styles.header}>
@@ -145,7 +163,20 @@ export default function TaskPage() {
                     </div>
                 </header>
 
-                {statusError && <p className={styles.actionError} role="alert">{statusError}</p>}
+                {statusError && (
+                    <div className={styles.actionError} role="alert">
+                        <span>{statusError}</span>
+                        {retryStatus && (
+                            <button
+                                type="button"
+                                className={styles.retryBtn}
+                                onClick={() => void handleStatusChange(retryStatus)}
+                            >
+                                Повторить
+                            </button>
+                        )}
+                    </div>
+                )}
 
                 <dl className={styles.metaGrid}>
                     <div className={styles.metaItem}>
@@ -173,8 +204,8 @@ export default function TaskPage() {
                     <h2>Комментарии ({task.comments?.length || 0})</h2>
                     {task.comments && task.comments.length > 0 ? (
                         <ul className={styles.commentList}>
-                            {task.comments.map((comment, index) => (
-                                <li key={index} className={styles.commentItem}>{comment}</li>
+                            {task.comments.map((comment) => (
+                                <li key={comment.id} className={styles.commentItem}>{comment.text}</li>
                             ))}
                         </ul>
                     ) : (
@@ -201,7 +232,19 @@ export default function TaskPage() {
                         </button>
                     </form>
 
-                    {commentError && <p className={styles.actionError} role="alert">{commentError}</p>}
+                    {commentError && (
+                        <div className={styles.actionError} role="alert">
+                            <span>{commentError}</span>
+                            <button
+                                type="button"
+                                className={styles.retryBtn}
+                                onClick={() => void submitComment()}
+                                disabled={isBusy}
+                            >
+                                Повторить
+                            </button>
+                        </div>
+                    )}
                 </section>
             </article>
         </main>

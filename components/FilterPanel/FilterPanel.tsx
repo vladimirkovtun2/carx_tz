@@ -1,12 +1,13 @@
-﻿import styles from "./FilterPanel.module.less";
+import { TaskStatus } from "@/types/task";
+import styles from "./FilterPanel.module.less";
 
 interface FilterPanelProps {
     searchQuery: string;
     onSearchChange: (value: string) => void;
     assigneeQuery: string;
     onAssigneeChange: (value: string) => void;
-    statusFilter: string;
-    onStatusChange: (value: string) => void;
+    statusFilter: TaskStatus | "Все";
+    onStatusChange: (value: TaskStatus | "Все") => void;
     sortOrder: "newest" | "oldest";
     onSortChange: (value: "newest" | "oldest") => void;
     disabled: boolean;
@@ -54,7 +55,7 @@ export default function FilterPanel({
                 <select
                     id="status-filter"
                     value={statusFilter}
-                    onChange={(e) => onStatusChange(e.target.value)}
+                    onChange={(e) => onStatusChange(e.target.value as TaskStatus | "Все")}
                     disabled={disabled}
                 >
                     <option value="Все">Все</option>

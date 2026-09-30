@@ -1,14 +1,22 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import FilterPanel from "@/components/FilterPanel/FilterPanel";
 import TaskCard from "@/components/TaskCard/TaskCard";
 import CreateTaskModal from "@/components/CreateTaskModal/CreateTaskModal";
-import { Task, NewTaskPayload } from "@/types/task";
+import { filterAndSortTasks } from "@/lib/filterTasks";
+import { Task, TaskStatus, NewTaskPayload, TASK_STATUSES } from "@/types/task";
 import styles from "./page.module.less";
 
 const URL_SYNC_DELAY = 400;
+
+// Значение из URL может быть любой строкой — оставляем только валидные статусы
+function parseStatus(value: string | null): TaskStatus | "Все" {
+    return value !== null && TASK_STATUSES.includes(value as TaskStatus)
+        ? (value as TaskStatus)
+        : "Все";
+}
 
 function TasksContent() {
     const router = useRouter();
@@ -19,18 +27,39 @@ function TasksContent() {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Начальное состояние — из URL (один раз при монтировании)
+    // Начальное состояние контролов — из URL
     const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
     const [assigneeQuery, setAssigneeQuery] = useState(() => searchParams.get("assignee") ?? "");
-    const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") ?? "Все");
+    const [statusFilter, setStatusFilter] = useState<TaskStatus | "Все">(() => parseStatus(searchParams.get("status")));
     const [sortOrder, setSortOrder] = useState<"newest" | "oldest">(() =>
         searchParams.get("sort") === "oldest" ? "oldest" : "newest"
     );
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // Стабильные колбэки для модалки (чтобы эффект фокуса не перезапускался)
     const openModal = useCallback(() => setIsModalOpen(true), []);
     const closeModal = useCallback(() => setIsModalOpen(false), []);
+
+    // Загрузка вынесена в useCallback — доступна и эффекту, и кнопке «Повторить»
+    const loadTasks = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const response = await fetch('/api/tasks');
+            if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+            const data: Task[] = await response.json();
+            setTasks(data);
+        } catch {
+            setError('Не удалось загрузить список задач.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadTasks();
+    }, [loadTasks]);
 
     // Back/Forward: перечитываем контролы из URL при навигации по истории
     useEffect(() => {
@@ -38,7 +67,7 @@ function TasksContent() {
             const params = new URLSearchParams(window.location.search);
             setSearchQuery(params.get("q") ?? "");
             setAssigneeQuery(params.get("assignee") ?? "");
-            setStatusFilter(params.get("status") ?? "Все");
+            setStatusFilter(parseStatus(params.get("status")));
             setSortOrder(params.get("sort") === "oldest" ? "oldest" : "newest");
         };
         window.addEventListener("popstate", handlePopState);
@@ -61,27 +90,6 @@ function TasksContent() {
         return () => clearTimeout(timer);
     }, [searchQuery, assigneeQuery, statusFilter, sortOrder, pathname, router]);
 
-    useEffect(() => {
-        const loadTasks = async () => {
-            try {
-                setIsLoading(true);
-                setError(null);
-
-                const response = await fetch('/api/tasks');
-                if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
-
-                const data = await response.json();
-                setTasks(data);
-            } catch {
-                setError('Не удалось загрузить список задач.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadTasks();
-    }, []);
-
     const handleCreateTask = async (payload: NewTaskPayload) => {
         const response = await fetch('/api/tasks', {
             method: 'POST',
@@ -98,20 +106,11 @@ function TasksContent() {
         setTasks((prev) => [newTask, ...prev]);
     };
 
-    const filteredAndSortedTasks = useMemo(() => {
-        const titleQuery = searchQuery.toLowerCase();
-        const assignee = assigneeQuery.toLowerCase();
-
-        return tasks
-            .filter((task) => task.title.toLowerCase().includes(titleQuery))
-            .filter((task) => task.assignee.toLowerCase().includes(assignee))
-            .filter((task) => statusFilter === "Все" || task.status === statusFilter)
-            .sort((a, b) => {
-                const dateA = new Date(a.createdAt).getTime();
-                const dateB = new Date(b.createdAt).getTime();
-                return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
-            });
-    }, [tasks, searchQuery, assigneeQuery, statusFilter, sortOrder]);
+    // Фильтрация — чистая функция из lib (покрыта тестами)
+    const filteredAndSortedTasks = useMemo(
+        () => filterAndSortTasks(tasks, { searchQuery, assigneeQuery, statusFilter, sortOrder }),
+        [tasks, searchQuery, assigneeQuery, statusFilter, sortOrder]
+    );
 
     return (
         <main className={styles.container}>
@@ -138,7 +137,12 @@ function TasksContent() {
                 {isLoading ? (
                     <p className={styles.loadingMessage}>Загрузка задач...</p>
                 ) : error ? (
-                    <p className={styles.errorMessage} role="alert">{error}</p>
+                    <div className={styles.errorMessage} role="alert">
+                        <p>{error}</p>
+                        <button type="button" className={styles.retryBtn} onClick={loadTasks}>
+                            Повторить
+                        </button>
+                    </div>
                 ) : filteredAndSortedTasks.length === 0 ? (
                     <p>Задачи не найдены.</p>
                 ) : (

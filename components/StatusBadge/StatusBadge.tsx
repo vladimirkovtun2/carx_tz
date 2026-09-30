@@ -1,7 +1,8 @@
-﻿import styles from "./StatusBadge.module.less";
+import { TaskStatus } from "@/types/task";
+import styles from "./StatusBadge.module.less";
 
 interface StatusBadgeProps {
-    status: "Новая" | "В\u00A0работе" | "Выполнена" | string;
+    status: TaskStatus;
 }
 
 export default function StatusBadge({ status }: StatusBadgeProps) {

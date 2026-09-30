@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import styles from "./ThemeToggle.module.less";
 
 type Theme = "light" | "dark";
@@ -26,8 +26,16 @@ function getServerSnapshot(): Theme {
 export default function ThemeToggle() {
     const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-    // Применяем тему к <html> при изменении (в т.ч. при гидратации)
+    const isFirstRender = useRef(true);
+
+    // Применяем тему к <html> при изменениях (клик, событие из другой вкладки).
+    // Первый прогон пропускаем: тему до гидратации уже применил скрипт в RootLayout,
+    // иначе сохранённая тёмная тема мигнула бы светлой
     useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
         document.documentElement.setAttribute("data-theme", theme);
     }, [theme]);
 

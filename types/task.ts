@@ -1,5 +1,10 @@
-﻿export type TaskStatus = "Новая" | "В работе" | "Выполнена";
+export type TaskStatus = "Новая" | "В работе" | "Выполнена";
 export type TaskPriority = "Низкий" | "Средний" | "Высокий";
+
+export interface TaskComment {
+    id: string;
+    text: string;
+}
 
 export interface Task {
     id: string;
@@ -10,7 +15,7 @@ export interface Task {
     result: string;
     priority: TaskPriority;
     createdAt: string;
-    comments: string[];
+    comments: TaskComment[];
 }
 
 export interface NewTaskPayload {
