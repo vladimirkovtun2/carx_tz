@@ -1,6 +1,6 @@
 ﻿import Link from "next/link";
 import StatusBadge from "../StatusBadge/StatusBadge";
-import { Task } from "@/app/page";
+import { Task } from "@/types/task";
 import styles from "./TaskCard.module.less";
 
 interface TaskCardProps {

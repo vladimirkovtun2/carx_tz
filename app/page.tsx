@@ -1,23 +1,14 @@
 ﻿'use client';
 
-import { useState, useMemo, useEffect, Suspense } from "react";
+import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import FilterPanel from "@/components/FilterPanel/FilterPanel";
 import TaskCard from "@/components/TaskCard/TaskCard";
-import CreateTaskModal, { NewTaskPayload } from "@/components/CreateTaskModal/CreateTaskModal";
+import CreateTaskModal from "@/components/CreateTaskModal/CreateTaskModal";
+import { Task, NewTaskPayload } from "@/types/task";
 import styles from "./page.module.less";
 
-export interface Task {
-    id: string;
-    title: string;
-    description: string;
-    assignee: string;
-    status: "Новая" | "В работе" | "Выполнена";
-    result: string;
-    priority: "Низкий" | "Средний" | "Высокий";
-    createdAt: string;
-    comments: string[];
-}
+const URL_SYNC_DELAY = 400;
 
 function TasksContent() {
     const router = useRouter();
@@ -28,28 +19,50 @@ function TasksContent() {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Фильтры
-    const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
-    const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "Все");
-    const [sortOrder, setSortOrder] = useState<"newest" | "oldest">(
-        (searchParams.get("sort") as "newest" | "oldest") || "newest"
+    // Начальное состояние — из URL (один раз при монтировании)
+    const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
+    const [assigneeQuery, setAssigneeQuery] = useState(() => searchParams.get("assignee") ?? "");
+    const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") ?? "Все");
+    const [sortOrder, setSortOrder] = useState<"newest" | "oldest">(() =>
+        searchParams.get("sort") === "oldest" ? "oldest" : "newest"
     );
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Синхронизация фильтров с URL
-    useEffect(() => {
-        const params = new URLSearchParams();
-        if (searchQuery) params.set("q", searchQuery);
-        if (statusFilter !== "Все") params.set("status", statusFilter);
-        if (sortOrder !== "newest") params.set("sort", sortOrder);
+    const openModal = useCallback(() => setIsModalOpen(true), []);
+    const closeModal = useCallback(() => setIsModalOpen(false), []);
 
-        const query = params.toString();
-        router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    }, [searchQuery, statusFilter, sortOrder, pathname, router]);
+    // Back/Forward: перечитываем контролы из URL при навигации по истории
+    useEffect(() => {
+        const handlePopState = () => {
+            const params = new URLSearchParams(window.location.search);
+            setSearchQuery(params.get("q") ?? "");
+            setAssigneeQuery(params.get("assignee") ?? "");
+            setStatusFilter(params.get("status") ?? "Все");
+            setSortOrder(params.get("sort") === "oldest" ? "oldest" : "newest");
+        };
+        window.addEventListener("popstate", handlePopState);
+        return () => window.removeEventListener("popstate", handlePopState);
+    }, []);
+
+    // Отложенная синхронизация фильтров с URL (debounce)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams();
+            if (searchQuery) params.set("q", searchQuery);
+            if (assigneeQuery) params.set("assignee", assigneeQuery);
+            if (statusFilter !== "Все") params.set("status", statusFilter);
+            if (sortOrder !== "newest") params.set("sort", sortOrder);
+
+            const query = params.toString();
+            router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+        }, URL_SYNC_DELAY);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery, assigneeQuery, statusFilter, sortOrder, pathname, router]);
 
     useEffect(() => {
-        const loadScheduleData = async () => {
+        const loadTasks = async () => {
             try {
                 setIsLoading(true);
                 setError(null);
@@ -59,14 +72,14 @@ function TasksContent() {
 
                 const data = await response.json();
                 setTasks(data);
-            } catch (err) {
+            } catch {
                 setError('Не удалось загрузить список задач.');
             } finally {
                 setIsLoading(false);
             }
         };
 
-        loadScheduleData();
+        loadTasks();
     }, []);
 
     const handleCreateTask = async (payload: NewTaskPayload) => {
@@ -76,36 +89,35 @@ function TasksContent() {
             body: JSON.stringify(payload),
         });
 
-        if (!response.ok) throw new Error("Не удалось создать задачу");
+        if (!response.ok) {
+            const data = await response.json().catch(() => null);
+            throw new Error(data?.error ?? "Не удалось создать задачу");
+        }
 
         const newTask = await response.json();
         setTasks((prev) => [newTask, ...prev]);
     };
 
     const filteredAndSortedTasks = useMemo(() => {
+        const titleQuery = searchQuery.toLowerCase();
+        const assignee = assigneeQuery.toLowerCase();
+
         return tasks
-            .filter((task) =>
-                task.title.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-            .filter((task) => {
-                if (statusFilter === "Все") return true;
-                return task.status === statusFilter;
-            })
+            .filter((task) => task.title.toLowerCase().includes(titleQuery))
+            .filter((task) => task.assignee.toLowerCase().includes(assignee))
+            .filter((task) => statusFilter === "Все" || task.status === statusFilter)
             .sort((a, b) => {
                 const dateA = new Date(a.createdAt).getTime();
                 const dateB = new Date(b.createdAt).getTime();
                 return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
             });
-    }, [tasks, searchQuery, statusFilter, sortOrder]);
+    }, [tasks, searchQuery, assigneeQuery, statusFilter, sortOrder]);
 
     return (
         <main className={styles.container}>
             <div className={styles.headerRow}>
                 <h1 className={styles.title}>Список задач</h1>
-                <button
-                    className={styles.createBtn}
-                    onClick={() => setIsModalOpen(true)}
-                >
+                <button className={styles.createBtn} onClick={openModal}>
                     + Добавить задачу
                 </button>
             </div>
@@ -113,6 +125,8 @@ function TasksContent() {
             <FilterPanel
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
+                assigneeQuery={assigneeQuery}
+                onAssigneeChange={setAssigneeQuery}
                 statusFilter={statusFilter}
                 onStatusChange={setStatusFilter}
                 sortOrder={sortOrder}
@@ -124,7 +138,7 @@ function TasksContent() {
                 {isLoading ? (
                     <p className={styles.loadingMessage}>Загрузка задач...</p>
                 ) : error ? (
-                    <p className={styles.errorMessage}>{error}</p>
+                    <p className={styles.errorMessage} role="alert">{error}</p>
                 ) : filteredAndSortedTasks.length === 0 ? (
                     <p>Задачи не найдены.</p>
                 ) : (
@@ -138,7 +152,7 @@ function TasksContent() {
 
             <CreateTaskModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
+                onClose={closeModal}
                 onCreate={handleCreateTask}
             />
         </main>

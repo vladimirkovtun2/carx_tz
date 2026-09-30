@@ -1,25 +1,67 @@
-﻿@import '../../styles/variables.less';
+﻿@import '../../styles/variables.less'; // ← обязательно: здесь миксин .mobile и @border-radius
 
 .container {
     max-width: 800px;
     margin: 0 auto;
     padding: 2rem 1rem;
+
+    .mobile( {
+        padding: 1rem 0.75rem;
+    }
+
+    );
 }
 
 .navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 1.5rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
 }
 
-.backLink {
+.backBtn {
+    background: none;
+    border: none;
     color: var(--accent);
-    text-decoration: none;
     font-weight: 500;
-    display: inline-flex;
-    align-items: center;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.4rem 0;
 
     &:hover {
         text-decoration: underline;
     }
+}
+
+.deleteTaskBtn {
+    background-color: transparent;
+    color: #d32f2f;
+    border: 1px solid #ef9a9a;
+    padding: 0.4rem 0.8rem;
+    border-radius: @border-radius;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+        background-color: #ffebee;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+// Ошибки действий — показываются рядом с местом, где произошли
+.actionError {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border-radius: @border-radius;
+    background-color: var(--status-new-bg);
+    color: var(--status-new-text);
+    font-size: 0.875rem;
 }
 
 .taskDetail {
@@ -28,21 +70,31 @@
     border-radius: @border-radius;
     padding: 2rem;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+
+    .mobile( {
+        padding: 1rem;
+    }
+
+    );
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 0.75rem;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 1.5rem;
     margin-bottom: 1.5rem;
+    flex-wrap: wrap; // длинный заголовок + селектор не выйдут за ширину экрана
 
     .title {
         font-size: 1.75rem;
         line-height: 1.3;
         margin: 0;
+        color: var(--text-primary);
+        word-break: break-word;
+        flex: 1 1 260px; // заголовок сжимается, селект переносится на новую строку
     }
 }
 
@@ -60,7 +112,7 @@
     cursor: pointer;
     outline: none;
     transition: all 0.2s ease;
-    /* Стилизация под статус в светлой теме */
+
     &[data-status="Новая"] {
         background-color: #e3f2fd;
         color: #1976d2;
@@ -78,7 +130,7 @@
         color: #388e3c;
         border-color: #c8e6c9;
     }
-    /* Поддержка тёмной темы */
+
     [data-theme="dark"] & {
         &[data-status="Новая"] {
             background-color: rgba(25, 118, 210, 0.2);
@@ -98,30 +150,15 @@
             border-color: rgba(56, 142, 60, 0.4);
         }
     }
-    /* Выпадающие пункты остаются разборчивыми */
+
     option {
         background-color: var(--card-bg, #ffffff);
         color: var(--text-primary, #333333);
     }
-}
 
-.statusBadge {
-    &.new {
-        background-color: #e3f2fd;
-        color: #1976d2;
-        border: 1px solid #bbdefb;
-    }
-
-    &.inProgress {
-        background-color: #fff3e0;
-        color: #f57c00;
-        border: 1px solid #ffe0b2;
-    }
-
-    &.completed {
-        background-color: #e8f5e9;
-        color: #388e3c;
-        border: 1px solid #c8e6c9;
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 }
 
@@ -231,29 +268,4 @@
 .loadingMessage, .errorBox {
     text-align: center;
     padding: 3rem 1rem;
-}
-.navigation {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-}
-
-.deleteTaskBtn {
-    background-color: transparent;
-    color: #d32f2f;
-    border: 1px solid #ef9a9a;
-    padding: 0.4rem 0.8rem;
-    border-radius: @border-radius;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-        background-color: #ffebee;
-    }
-
-    &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
 }

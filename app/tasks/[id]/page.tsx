@@ -1,147 +1,129 @@
 ﻿'use client';
 
-import { useState, useEffect, use } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Task } from "@/app/page";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { Task, TaskStatus } from "@/types/task";
 import styles from "./task.module.less";
 
-interface TaskPageProps {
-    params: Promise<{ id: string }>;
-}
+type PendingAction = "status" | "comment" | "delete" | null;
 
-export default function TaskPage({ params }: TaskPageProps) {
-    const { id } = use(params);
+export default function TaskPage() {
     const router = useRouter();
+    const { id } = useParams<{ id: string }>();
 
     const [task, setTask] = useState<Task | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
+
     const [commentText, setCommentText] = useState("");
-    const [isUpdating, setIsUpdating] = useState(false);
+    const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+    const [statusError, setStatusError] = useState<string | null>(null);
+    const [commentError, setCommentError] = useState<string | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchTask = async () => {
+        if (!id) return;
+
+        const loadTask = async () => {
             try {
                 setIsLoading(true);
-                setError(null);
-
+                setLoadError(null);
                 const response = await fetch(`/api/tasks/${id}`);
-                if (!response.ok) {
-                    if (response.status === 404) throw new Error("Задача не найдена");
-                    throw new Error("Ошибка при загрузке задачи");
+                if (response.status === 404) {
+                    router.replace("/");
+                    return;
                 }
-
-                const data = await response.json();
+                if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+                const data: Task = await response.json();
                 setTask(data);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Неизвестная ошибка");
+            } catch {
+                setLoadError("Не удалось загрузить задачу.");
             } finally {
                 setIsLoading(false);
             }
         };
 
-        fetchTask();
-    }, [id]);
+        loadTask();
+    }, [id, router]);
+
+    const handleStatusChange = async (status: TaskStatus) => {
+        if (!task) return;
+        try {
+            setPendingAction("status");
+            setStatusError(null);
+            const response = await fetch(`/api/tasks/${task.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status }),
+            });
+            if (!response.ok) throw new Error();
+            setTask(await response.json());
+        } catch {
+            setStatusError("Не удалось изменить статус. Попробуйте ещё раз.");
+        } finally {
+            setPendingAction(null);
+        }
+    };
+
+    const handleAddComment = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!task || !commentText.trim()) return;
+        try {
+            setPendingAction("comment");
+            setCommentError(null);
+            const response = await fetch(`/api/tasks/${task.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ comments: [...(task.comments ?? []), commentText.trim()] }),
+            });
+            if (!response.ok) throw new Error();
+            setTask(await response.json());
+            setCommentText("");
+        } catch {
+            setCommentError("Не удалось отправить комментарий. Попробуйте ещё раз.");
+        } finally {
+            setPendingAction(null);
+        }
+    };
 
     const handleDelete = async () => {
-        if (!confirm("Вы уверены, что хотите удалить эту задачу?")) return;
-
+        if (!task || !window.confirm("Удалить задачу? Действие нельзя отменить.")) return;
         try {
-            setIsUpdating(true);
-            const response = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
-            if (!response.ok) throw new Error("Не удалось удалить задачу");
-
+            setPendingAction("delete");
+            setDeleteError(null);
+            const response = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+            if (!response.ok) throw new Error();
             router.push("/");
-        } catch (err) {
-            alert("Ошибка при удалении задачи");
-            setIsUpdating(false);
-        }
-    };
-
-    const handleStatusChange = async (newStatus: Task["status"]) => {
-        if (!task || isUpdating) return;
-
-        try {
-            setIsUpdating(true);
-            const response = await fetch(`/api/tasks/${id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: newStatus }),
-            });
-
-            if (!response.ok) throw new Error("Не удалось обновить статус");
-
-            const updated = await response.json();
-            setTask(updated);
-        } catch (err) {
-            alert("Ошибка при изменении статуса");
+        } catch {
+            setDeleteError("Не удалось удалить задачу. Попробуйте ещё раз.");
         } finally {
-            setIsUpdating(false);
+            setPendingAction(null);
         }
     };
 
-    const handleAddComment = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!task || !commentText.trim() || isUpdating) return;
+    if (isLoading) return <main className={styles.container}><p>Загрузка задачи...</p></main>;
+    if (loadError) return <main className={styles.container}><p role="alert">{loadError}</p></main>;
+    if (!task) return null;
 
-        try {
-            setIsUpdating(true);
-            const updatedComments = [...(task.comments || []), commentText.trim()];
-
-            const response = await fetch(`/api/tasks/${id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ comments: updatedComments }),
-            });
-
-            if (!response.ok) throw new Error("Не удалось добавить комментарий");
-
-            const updated = await response.json();
-            setTask(updated);
-            setCommentText("");
-        } catch (err) {
-            alert("Ошибка при добавлении комментария");
-        } finally {
-            setIsUpdating(false);
-        }
-    };
-
-    if (isLoading) {
-        return (
-            <main className={styles.container}>
-                <p className={styles.loadingMessage}>Загрузка информации о задаче...</p>
-            </main>
-        );
-    }
-
-    if (error || !task) {
-        return (
-            <main className={styles.container}>
-                <div className={styles.errorBox}>
-                    <h2>{error || "Задача не найдена"}</h2>
-                    <Link href="/" className={styles.backLink}>
-                        ← Вернуться к списку
-                    </Link>
-                </div>
-            </main>
-        );
-    }
+    const isBusy = pendingAction !== null;
 
     return (
         <main className={styles.container}>
-            <nav className={styles.navigation} aria-label="Навигация">
-                <Link href="/" className={styles.backLink}>
-                    ← Вернуться к списку задач
-                </Link>
+            <nav className={styles.navigation}>
+                <button type="button" className={styles.backBtn} onClick={() => router.push("/")}>
+                    ← Назад к списку
+                </button>
                 <button
-                    onClick={handleDelete}
-                    disabled={isUpdating}
+                    type="button"
                     className={styles.deleteTaskBtn}
+                    onClick={handleDelete}
+                    disabled={isBusy}
                 >
-                    Удалить задачу
+                    {pendingAction === "delete" ? "Удаление..." : "Удалить задачу"}
                 </button>
             </nav>
+
+            {deleteError && <p className={styles.actionError} role="alert">{deleteError}</p>}
 
             <article className={styles.taskDetail}>
                 <header className={styles.header}>
@@ -153,8 +135,8 @@ export default function TaskPage({ params }: TaskPageProps) {
                             className={styles.statusSelect}
                             data-status={task.status}
                             value={task.status}
-                            onChange={(e) => handleStatusChange(e.target.value as Task["status"])}
-                            disabled={isUpdating}
+                            onChange={(e) => handleStatusChange(e.target.value as TaskStatus)}
+                            disabled={pendingAction === "status" || pendingAction === "delete"}
                         >
                             <option value="Новая">Новая</option>
                             <option value="В работе">В работе</option>
@@ -162,6 +144,8 @@ export default function TaskPage({ params }: TaskPageProps) {
                         </select>
                     </div>
                 </header>
+
+                {statusError && <p className={styles.actionError} role="alert">{statusError}</p>}
 
                 <dl className={styles.metaGrid}>
                     <div className={styles.metaItem}>
@@ -198,20 +182,26 @@ export default function TaskPage({ params }: TaskPageProps) {
                     )}
 
                     <form onSubmit={handleAddComment} className={styles.commentForm}>
+                        <label htmlFor="comment-input" className={styles.srOnly}>
+                            Добавить комментарий
+                        </label>
                         <textarea
+                            id="comment-input"
                             placeholder="Напишите комментарий..."
                             value={commentText}
                             onChange={(e) => setCommentText(e.target.value)}
-                            disabled={isUpdating}
+                            disabled={isBusy}
                         />
                         <button
                             type="submit"
-                            disabled={isUpdating || !commentText.trim()}
+                            disabled={isBusy || !commentText.trim()}
                             className={styles.sendBtn}
                         >
-                            Отправить
+                            {pendingAction === "comment" ? "Отправка..." : "Отправить"}
                         </button>
                     </form>
+
+                    {commentError && <p className={styles.actionError} role="alert">{commentError}</p>}
                 </section>
             </article>
         </main>

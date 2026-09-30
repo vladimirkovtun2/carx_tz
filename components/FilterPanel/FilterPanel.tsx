@@ -2,31 +2,35 @@
 
 interface FilterPanelProps {
     searchQuery: string;
-    onSearchChange: (val: string) => void;
+    onSearchChange: (value: string) => void;
+    assigneeQuery: string;
+    onAssigneeChange: (value: string) => void;
     statusFilter: string;
-    onStatusChange: (val: string) => void;
+    onStatusChange: (value: string) => void;
     sortOrder: "newest" | "oldest";
-    onSortChange: (val: "newest" | "oldest") => void;
-    disabled?: boolean;
+    onSortChange: (value: "newest" | "oldest") => void;
+    disabled: boolean;
 }
 
 export default function FilterPanel({
     searchQuery,
     onSearchChange,
+    assigneeQuery,
+    onAssigneeChange,
     statusFilter,
     onStatusChange,
     sortOrder,
     onSortChange,
-    disabled = false,
+    disabled,
 }: FilterPanelProps) {
     return (
-        <section className={styles.controls} aria-label="Фильтры и поиск">
+        <div className={styles.controls}>
             <div className={styles.filterGroup}>
                 <label htmlFor="search-input">Поиск по названию:</label>
                 <input
                     id="search-input"
                     type="text"
-                    placeholder="Введите название..."
+                    placeholder="Введите название задачи..."
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
                     disabled={disabled}
@@ -34,14 +38,26 @@ export default function FilterPanel({
             </div>
 
             <div className={styles.filterGroup}>
-                <label htmlFor="status-select">Статус:</label>
+                <label htmlFor="assignee-input">Поиск по исполнителю:</label>
+                <input
+                    id="assignee-input"
+                    type="text"
+                    placeholder="Введите имя исполнителя..."
+                    value={assigneeQuery}
+                    onChange={(e) => onAssigneeChange(e.target.value)}
+                    disabled={disabled}
+                />
+            </div>
+
+            <div className={styles.filterGroup}>
+                <label htmlFor="status-filter">Статус:</label>
                 <select
-                    id="status-select"
+                    id="status-filter"
                     value={statusFilter}
                     onChange={(e) => onStatusChange(e.target.value)}
                     disabled={disabled}
                 >
-                    <option value="Все">Все статусы</option>
+                    <option value="Все">Все</option>
                     <option value="Новая">Новая</option>
                     <option value="В работе">В работе</option>
                     <option value="Выполнена">Выполнена</option>
@@ -49,9 +65,9 @@ export default function FilterPanel({
             </div>
 
             <div className={styles.filterGroup}>
-                <label htmlFor="sort-select">Сортировка по дате:</label>
+                <label htmlFor="sort-order">Сортировка:</label>
                 <select
-                    id="sort-select"
+                    id="sort-order"
                     value={sortOrder}
                     onChange={(e) => onSortChange(e.target.value as "newest" | "oldest")}
                     disabled={disabled}
@@ -60,6 +76,6 @@ export default function FilterPanel({
                     <option value="oldest">Сначала старые</option>
                 </select>
             </div>
-        </section>
+        </div>
     );
 }

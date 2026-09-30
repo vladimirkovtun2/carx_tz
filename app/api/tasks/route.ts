@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
-import { Task } from "@/app/page";
+import { Task } from "@/types/task";
 
 const filePath = path.join(process.cwd(), "public", "tasks.json");
 
