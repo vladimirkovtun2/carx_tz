@@ -1,6 +1,12 @@
 import "./styles/globals.less";
 import styles from "./layout.module.less";
 import ThemeToggle from "@/components/ThemeToggle/ThemeToggle";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "TaskTracker",
+    description: "Трекер задач",
+};
 
 // Применяем сохранённую тему до гидратации — иначе тёмная тема мигнёт светлой
 const themeInitScript = `try{var t=localStorage.getItem("theme");if(t==="dark"){document.documentElement.setAttribute("data-theme","dark")}}catch(e){}`;
