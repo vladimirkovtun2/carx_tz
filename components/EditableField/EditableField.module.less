@@ -1,0 +1,137 @@
+@import "../../app/styles/variables.less";
+
+.view {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem 0.75rem;
+    flex-wrap: wrap;
+}
+
+.value {
+    flex: 1 1 200px;
+    min-width: 0;
+    line-height: 1.6;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.empty {
+    flex: 1 1 200px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.editBtn {
+    background: none;
+    border: none;
+    padding: 0.2rem 0;
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        text-decoration: underline;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+.editor {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    textarea,
+    select {
+        width: 100%;
+        padding: 0.55rem;
+        border: 1px solid var(--border-color);
+        border-radius: @border-radius;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        font-family: inherit;
+    }
+
+    textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.saveBtn {
+    padding: 0.5rem 1.5rem;
+    background-color: var(--accent);
+    color: #ffffff;
+    border: none;
+    border-radius: @border-radius;
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+.cancelBtn {
+    padding: 0.5rem 1rem;
+    background-color: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: @border-radius;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        color: var(--text-primary);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+.actionError {
+    padding: 0.75rem;
+    border-radius: @border-radius;
+    background-color: var(--status-new-bg);
+    color: var(--status-new-text);
+    font-size: 0.875rem;
+}
+
+.retryBtn {
+    margin-left: 0.75rem;
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}

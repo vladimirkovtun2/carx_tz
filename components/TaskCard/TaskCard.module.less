@@ -1,4 +1,4 @@
-﻿@import "../../app/styles/variables.less";
+@import "../../app/styles/variables.less";
 
 .taskCard {
     background-color: var(--card-bg);
@@ -38,4 +38,16 @@
     gap: 0.5rem;
     font-size: 0.85rem;
     color: var(--text-secondary);
+}
+
+.taskResult {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }

@@ -111,6 +111,14 @@ describe("PATCH /api/tasks/[id]", () => {
         expect(store.tasks.find((t) => t.id === "1")?.status).toBe("В работе");
     });
 
+    it("обновляет результат задачи", async () => {
+        const res = await PATCH(jsonRequest("PATCH", { result: "Готово, протестировано" }, "http://localhost/api/tasks/1"), params("1"));
+        expect(res.status).toBe(200);
+        const data = await res.json();
+        expect(data.result).toBe("Готово, протестировано");
+        expect(store.tasks.find((t) => t.id === "1")?.result).toBe("Готово, протестировано");
+    });
+
     it("отклоняет попытку изменить id или createdAt", async () => {
         expect((await PATCH(jsonRequest("PATCH", { id: "hack" }), params("1"))).status).toBe(400);
         expect((await PATCH(jsonRequest("PATCH", { createdAt: "2000-01-01" }), params("1"))).status).toBe(400);

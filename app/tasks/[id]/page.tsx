@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Task, TaskStatus } from "@/types/task";
+import { Task, TaskStatus, TASK_PRIORITIES } from "@/types/task";
+import EditableField from "@/components/EditableField/EditableField";
 import styles from "./task.module.less";
 
-type PendingAction = "status" | "comment" | "delete" | null;
+type PendingAction = "status" | "comment" | "edit" | "delete" | null;
 
 export default function TaskPage() {
     const router = useRouter();
@@ -97,6 +98,28 @@ export default function TaskPage() {
         void submitComment();
     };
 
+    // Единый PATCH для инлайн-полей: null — успех, строка — текст ошибки для редактора
+    const updateField = (field: "description" | "result" | "priority") => {
+        return async (value: string): Promise<string | null> => {
+            if (!task) return "Не удалось сохранить изменения.";
+            try {
+                setPendingAction("edit");
+                const response = await fetch(`/api/tasks/${task.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ [field]: value }),
+                });
+                if (!response.ok) throw new Error();
+                setTask(await response.json());
+                return null;
+            } catch {
+                return "Не удалось сохранить изменения.";
+            } finally {
+                setPendingAction(null);
+            }
+        };
+    };
+
     const handleDelete = async () => {
         if (!task || !window.confirm("Удалить задачу? Действие нельзя отменить.")) return;
         try {
@@ -185,7 +208,15 @@ export default function TaskPage() {
                     </div>
                     <div className={styles.metaItem}>
                         <dt>Приоритет:</dt>
-                        <dd><strong>{task.priority}</strong></dd>
+                        <dd>
+                            <EditableField
+                                label="Изменить приоритет"
+                                value={task.priority}
+                                options={TASK_PRIORITIES}
+                                onSave={updateField("priority")}
+                                disabled={isBusy}
+                            />
+                        </dd>
                     </div>
                     <div className={styles.metaItem}>
                         <dt>Дата создания:</dt>
@@ -195,9 +226,24 @@ export default function TaskPage() {
 
                 <section className={styles.section}>
                     <h2>Описание</h2>
-                    <p className={styles.description}>
-                        {task.description || "Описание отсутствует."}
-                    </p>
+                    <EditableField
+                        label="Изменить описание"
+                        value={task.description}
+                        emptyText="Описание отсутствует."
+                        onSave={updateField("description")}
+                        disabled={isBusy}
+                    />
+                </section>
+
+                <section className={styles.section}>
+                    <h2>Результат</h2>
+                    <EditableField
+                        label="Изменить результат"
+                        value={task.result}
+                        emptyText="Результат пока не указан."
+                        onSave={updateField("result")}
+                        disabled={isBusy}
+                    />
                 </section>
 
                 <section className={styles.section}>

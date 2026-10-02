@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import StatusBadge from "../StatusBadge/StatusBadge";
 import { Task } from "@/types/task";
 import styles from "./TaskCard.module.less";
@@ -23,6 +23,7 @@ export default function TaskCard({ task }: TaskCardProps) {
                 <span>•</span>
                 <span>Дата: {new Date(task.createdAt).toLocaleDateString("ru-RU")}</span>
             </div>
+            {task.result && <p className={styles.taskResult}>{task.result}</p>}
         </li>
     );
 }
