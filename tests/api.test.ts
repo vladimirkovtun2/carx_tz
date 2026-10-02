@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Task } from "@/types/task";
 
-// Хранилище в памяти вместо data/tasks.json — роуты работают с ним как с файлом
+// Хранилище в памяти вместо таблицы tasks в Supabase — роуты работают с ним как с базой
 const store = vi.hoisted(() => ({ tasks: [] as Task[] }));
 
 vi.mock("@/lib/tasks", () => ({
