@@ -1,28 +1,6 @@
--- Схема и данные для Supabase. Выполнить в SQL Editor (Dashboard -> SQL -> New query).
-create table if not exists public.tasks (
-    id          text primary key,
-    title       text not null check (char_length(title) <= 200),
-    description text not null default '',
-    assignee    text not null check (char_length(assignee) <= 100),
-    status      text not null default 'Новая' check (status in ('Новая', 'В работе', 'Выполнена')),
-    result      text not null default '',
-    priority    text not null default 'Средний' check (priority in ('Низкий', 'Средний', 'Высокий')),
-    created_at  timestamptz not null default now(),
-    comments    jsonb not null default '[]'::jsonb
-);
-
--- Приложение ходит под anon-ключом, авторизации нет: разрешаем все операции.
--- Когда появится авторизация — заменить политики на проверку пользователя.
-alter table public.tasks enable row level security;
-
-drop policy if exists "tasks_all" on public.tasks;
-create policy "tasks_all" on public.tasks
-    for all to anon, authenticated
-    using (true) with check (true);
-
-grant select, insert, update, delete on public.tasks to anon, authenticated;
-
--- Сид из data/tasks.json (можно перезапускать: конфликты по id обновляются)
+-- Данные для локальной разработки: применяется командой supabase db reset
+-- (первый supabase start тоже прогоняет его автоматически).
+-- Облачный проект уже засеян этими же данными через SQL Editor.
 insert into public.tasks (id, title, description, assignee, status, result, priority, created_at, comments)
 values
   ('1', 'Разработать модуль авторизации', 'Реализовать вход по логину и паролю с использованием JWT-токенов, добавить refresh-токены и обработку ошибок.', 'Иван Иванов', 'В работе', 'В процессе тестирования на стейджинге', 'Высокий', '2026-09-15T10:00:00Z'::timestamptz, '[{"id":"1-c1","text":"Дизайн согласован"},{"id":"1-c2","text":"Нужно доработать валидацию формы"}]'::jsonb),
